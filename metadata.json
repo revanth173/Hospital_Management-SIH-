@@ -1,0 +1,11 @@
+{
+  "name": "Clinical Intake Kiosk (ABDM & DPDP)",
+  "description": "Smart clinical intake kiosk featuring ABHA authentication, DPDP Act 2023 audio consent, Allopathic (SOCRATES) and AYUSH (Dashavidha) triage, red-flag detection, OCR extraction, FHIR encoding, ABDM sync, and data purging.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

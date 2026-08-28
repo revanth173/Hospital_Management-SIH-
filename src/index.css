@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-parchment: #F9F7F2;
+    --ink-obsidian: #1A1A1A;
+    --stone-plate: #EAE8E2;
+    --ochre-accent: #D4A373;
+    --terracotta: #A84A38;
+    --sage-accent: #5E7153;
+  }
+
+  body {
+    background-color: #F9F7F2;
+    color: #1A1A1A;
+    font-family: 'Newsreader', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, .font-serif-display {
+    font-family: 'Cormorant Garamond', 'Newsreader', Georgia, serif;
+  }
+
+  .font-editorial-sans {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Artistic flair custom helpers */
+.artistic-border {
+  border-color: rgba(26, 26, 26, 0.1);
+}
+
+.artistic-card {
+  background-color: #FFFFFF;
+  border: 1px solid rgba(26, 26, 26, 0.08);
+  box-shadow: 0 4px 20px -2px rgba(26, 26, 26, 0.03);
+}
+
+.artistic-stone-card {
+  background-color: #EAE8E2;
+  border: 1px solid rgba(26, 26, 26, 0.08);
+}
+
+.artistic-obsidian-card {
+  background-color: #1A1A1A;
+  color: #F9F7F2;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
