@@ -22,7 +22,11 @@ import {
   ChevronRight,
   Sparkles,
   Layers,
+  Lock,
+  LogOut,
+  BadgeCheck,
 } from 'lucide-react';
+import { DoctorSession } from './DoctorAuthModal';
 
 interface DoctorEmrPortalProps {
   patientAuth: PatientAuth;
@@ -32,7 +36,9 @@ interface DoctorEmrPortalProps {
   uploadedDocs: UploadedDocument[];
   queueToken: QueueToken;
   medicalSystem: MedicalSystem;
+  doctorSession?: DoctorSession | null;
   onBackToKiosk: () => void;
+  onLockTerminal?: () => void;
 }
 
 export const DoctorEmrPortal: React.FC<DoctorEmrPortalProps> = ({
@@ -43,40 +49,61 @@ export const DoctorEmrPortal: React.FC<DoctorEmrPortalProps> = ({
   uploadedDocs,
   queueToken,
   medicalSystem,
+  doctorSession,
   onBackToKiosk,
+  onLockTerminal,
 }) => {
   const [activeTab, setActiveTab] = useState<'chart' | 'fhir' | 'docs'>('chart');
   const [doctorNotes, setDoctorNotes] = useState('');
   const [rxPrescription, setRxPrescription] = useState('');
   const [consultationCompleted, setConsultationCompleted] = useState(false);
 
+  const activeDoctorName = doctorSession?.doctorName || queueToken.doctorName;
+  const activeDepartment = doctorSession?.department || queueToken.department;
+  const nmcNumber = doctorSession?.nmcRegNo || 'NMC-DL-2018-84920';
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Top Banner: Doctor's Workstation Info */}
-      <div className="bg-[#1A1A1A] text-[#F9F7F2] rounded-3xl p-5 mb-6 border border-white/10 shadow-lg flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#0F172A] text-white rounded-3xl p-5 mb-6 border border-emerald-500/30 shadow-xl flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-full bg-[#5E7153] flex items-center justify-center text-[#F9F7F2] shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-xs">
             <Stethoscope className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-serif font-bold text-lg text-white">
-                {queueToken.doctorName}
+                {activeDoctorName}
               </span>
-              <span className="text-[10px] uppercase font-sans font-bold px-2.5 py-0.5 rounded-full bg-white/10 text-[#D4A373] border border-white/10">
-                {queueToken.roomNumber} • {queueToken.department}
+              <span className="text-[10px] uppercase font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {queueToken.roomNumber} • {activeDepartment}
+              </span>
+              <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+                <BadgeCheck className="w-3 h-3 text-emerald-400" />
+                {nmcNumber}
               </span>
             </div>
-            <p className="text-xs text-[#F9F7F2]/60 font-serif italic">
-              Live ABDM EMR Handover Terminal • Queue Token: <strong className="text-[#D4A373] font-sans">{queueToken.tokenNumber}</strong>
+            <p className="text-xs text-slate-300 font-sans mt-0.5">
+              Live ABDM EMR Handover Terminal • Queue Token: <strong className="text-emerald-400 font-mono">{queueToken.tokenNumber}</strong>
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {onLockTerminal && (
+            <button
+              onClick={onLockTerminal}
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono flex items-center gap-1.5 border border-slate-700 transition-colors cursor-pointer"
+              title="Lock Physician Terminal"
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Lock Terminal</span>
+            </button>
+          )}
+
           <button
             onClick={onBackToKiosk}
-            className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-[#F9F7F2] text-xs font-sans uppercase tracking-[0.15em] border border-white/10 transition-colors cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs font-sans uppercase tracking-[0.15em] transition-all shadow-md active:scale-98 cursor-pointer"
           >
             ← Return to Kiosk
           </button>
@@ -275,7 +302,7 @@ export const DoctorEmrPortal: React.FC<DoctorEmrPortalProps> = ({
                     value={doctorNotes}
                     onChange={(e) => setDoctorNotes(e.target.value)}
                     placeholder="e.g. Advise 12-Lead ECG correlation, Troponin-I serial follow-up, cardiology bed admission."
-                    className="w-full p-3.5 rounded-2xl border border-[#1A1A1A]/20 text-xs font-serif focus:ring-1 focus:ring-[#1A1A1A] focus:outline-none bg-[#F9F7F2]"
+                    className="w-full p-3.5 rounded-2xl border border-[#1A1A1A]/20 text-xs font-serif text-slate-900 font-medium focus:ring-1 focus:ring-[#1A1A1A] focus:outline-none bg-[#F9F7F2]"
                   />
                 </div>
 

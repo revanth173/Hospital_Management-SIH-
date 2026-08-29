@@ -2,17 +2,17 @@
 
 @layer base {
   :root {
-    --bg-parchment: #F9F7F2;
-    --ink-obsidian: #1A1A1A;
-    --stone-plate: #EAE8E2;
-    --ochre-accent: #D4A373;
-    --terracotta: #A84A38;
-    --sage-accent: #5E7153;
+    --bg-parchment: #0B132B;
+    --ink-obsidian: #0F172A;
+    --stone-plate: #1E293B;
+    --ochre-accent: #06D6A0;
+    --terracotta: #F43F5E;
+    --sage-accent: #38BDF8;
   }
 
   body {
-    background-color: #F9F7F2;
-    color: #1A1A1A;
+    background-color: #070D1E;
+    color: #F8FAFC;
     font-family: 'Newsreader', Georgia, serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -26,25 +26,107 @@
   }
 }
 
-/* Artistic flair custom helpers */
+/* Bulletproof Global Text Contrast on All Input Elements */
+input,
+select,
+textarea {
+  color: #0F172A !important;
+  font-weight: 500;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748B !important;
+  opacity: 0.9;
+}
+
+/* Light Surface Card Rules: Always render dark, crisp, readable ink */
+.bg-white,
+.bg-white\/70,
+.bg-white\/80,
+.bg-white\/90,
+.bg-white\/95,
+.bg-\[\#FAF9F5\],
+.bg-\[\#FAF9F5\]\/95,
+.bg-\[\#F9F7F2\],
+.bg-\[\#F9F7F2\]\/40,
+.bg-\[\#F9F7F2\]\/60,
+.bg-\[\#EAE8E2\],
+.bg-\[\#EAE8E2\]\/50,
+.bg-\[\#EAE8E2\]\/60,
+.bg-slate-50,
+.bg-slate-100 {
+  color: #0F172A;
+}
+
+/* Ensure text on light cards doesn't get washed out */
+.bg-white p,
+.bg-white span,
+.bg-white div,
+.bg-white label,
+.bg-white h1,
+.bg-white h2,
+.bg-white h3,
+.bg-white h4,
+.bg-\[\#FAF9F5\] p,
+.bg-\[\#FAF9F5\] span,
+.bg-\[\#FAF9F5\] div,
+.bg-\[\#FAF9F5\] label,
+.bg-\[\#FAF9F5\] h1,
+.bg-\[\#FAF9F5\] h2,
+.bg-\[\#FAF9F5\] h3,
+.bg-\[\#FAF9F5\] h4 {
+  color: inherit;
+}
+
+/* Deep Obsidian text utility overrides */
+.text-\[\#1A1A1A\] {
+  color: #0F172A !important;
+}
+.text-\[\#1A1A1A\]\/90 {
+  color: #1E293B !important;
+}
+.text-\[\#1A1A1A\]\/80 {
+  color: #334155 !important;
+}
+.text-\[\#1A1A1A\]\/70 {
+  color: #475569 !important;
+}
+.text-\[\#1A1A1A\]\/60 {
+  color: #64748B !important;
+}
+.text-\[\#1A1A1A\]\/50 {
+  color: #64748B !important;
+}
+
+/* Artistic flair custom helpers adapted for Cyber Health Dark */
 .artistic-border {
-  border-color: rgba(26, 26, 26, 0.1);
+  border-color: rgba(56, 189, 248, 0.2);
 }
 
 .artistic-card {
-  background-color: #FFFFFF;
-  border: 1px solid rgba(26, 26, 26, 0.08);
-  box-shadow: 0 4px 20px -2px rgba(26, 26, 26, 0.03);
+  background-color: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(6, 214, 160, 0.08);
+  color: #F8FAFC;
 }
 
 .artistic-stone-card {
-  background-color: #EAE8E2;
-  border: 1px solid rgba(26, 26, 26, 0.08);
+  background-color: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #F1F5F9;
 }
 
 .artistic-obsidian-card {
-  background-color: #1A1A1A;
-  color: #F9F7F2;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(7, 13, 30, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #F8FAFC;
+  border: 1px solid rgba(6, 214, 160, 0.3);
 }
+
 

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Language, FhirResourceBundle, EHRSummary, PatientAuth } from '../../types/kiosk';
 import { TRANSLATIONS } from '../../data/languages';
+import { ClinicalTelemetryCharts } from '../common/ClinicalTelemetryCharts';
 import {
   FileCode2,
+  FileText,
   Stethoscope,
   Copy,
   Check,
@@ -200,7 +202,39 @@ export const Step10PhysicianSummaryFhir: React.FC<Step10FhirProps> = ({
                   Immediate bedside physician consultation. Correlate with active medications: {ehrSummary.medicationsActive.join(', ')}.
                 </p>
               </div>
+
+              {/* Attached Raw Scans for Physician Direct Verification */}
+              <div className="p-4 rounded-2xl bg-[#EAE8E2]/60 border border-[#1A1A1A]/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-[#D4A373]" />
+                    <span>Attached Document Scans & Illegible Rx Review (Human-in-the-Loop)</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#5E7153] text-white">
+                    Patient Safety Protocol Active
+                  </span>
+                </div>
+                <div className="text-[11px] text-[#1A1A1A]/80 font-serif leading-relaxed">
+                  డాక్టర్ సంతకం, RMP రిజిస్ట్రేషన్ మరియు అస్పష్టమైన చేతిరాత ఉన్న ఒరిజినల్ స్కాన్ కాపీలు క్రింద అటాచ్ చేయబడ్డాయి. AI మందులను తప్పుగా ఊహించకుండా డాక్టర్ స్వయంగా చూసి నిర్ధారించడానికి హై-రెస్ ప్రివ్యూ సిద్ధంగా ఉంది.
+                </div>
+                <div className="p-2.5 bg-white rounded-xl border border-[#1A1A1A]/10 flex items-center justify-between text-xs">
+                  <span className="font-mono text-[10px] text-[#843C2E] font-bold">
+                    📎 [Attached]: Raw Cursive Rx Scan • Doctor Visual Confirmation Required
+                  </span>
+                  <span className="text-[10px] font-sans font-bold text-[#5E7153]">MD Review Pending 👁️</span>
+                </div>
+              </div>
             </div>
+
+            {/* Visual Graphical Gauges for Quick Physician Triaging */}
+            <ClinicalTelemetryCharts
+              bloodPressure={ehrSummary.vitalSigns.bloodPressure}
+              heartRate={ehrSummary.vitalSigns.heartRate}
+              spo2={ehrSummary.vitalSigns.spo2}
+              respiratoryRate={ehrSummary.vitalSigns.respiratoryRate}
+              painSeverityScore={8}
+              bloodSugar={142}
+            />
           </div>
         ) : (
           <div className="space-y-4">

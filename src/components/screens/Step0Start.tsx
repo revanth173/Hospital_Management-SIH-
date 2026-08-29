@@ -10,6 +10,10 @@ import {
   Sparkles,
   ArrowRight,
   UserCheck,
+  Activity,
+  Zap,
+  Lock,
+  Stethoscope,
 } from 'lucide-react';
 
 interface Step0StartProps {
@@ -26,52 +30,105 @@ export const Step0Start: React.FC<Step0StartProps> = ({
   const t = TRANSLATIONS[language];
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[75vh] max-w-4xl mx-auto px-4 py-8 text-center overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center min-h-[78vh] max-w-5xl mx-auto px-3 sm:px-6 py-6 text-center">
       {/* Background Watermark Numerals */}
-      <div className="absolute top-0 right-10 text-[160px] font-serif font-bold text-black/3 select-none pointer-events-none leading-none">
-        00
+      <div className="absolute top-2 right-6 text-[140px] sm:text-[180px] font-serif font-black text-white/5 select-none pointer-events-none leading-none tracking-tighter">
+        ABDM
       </div>
 
-      {/* Top Monograph Badge */}
-      <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#EAE8E2] border border-[#1A1A1A]/10 text-[#1A1A1A] text-[10px] font-sans uppercase tracking-[0.2em] mb-6">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#D4A373]" />
-        <span>Ayushman Bharat Digital Mission • Triage Terminal</span>
-      </div>
+      {/* Main Frosted Pearl-Ivory Centerpiece Card (Premium Hybrid Contrast) */}
+      <div className="w-full max-w-3xl rounded-3xl bg-[#FAF9F5]/95 backdrop-blur-2xl border border-white/60 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-10 relative overflow-hidden transition-all duration-300">
+        {/* Subtle Ambient Top Glow inside card */}
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-36 bg-gradient-to-b from-teal-500/20 via-emerald-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
 
-      {/* Main Center Obsidian Plate */}
-      <div className="relative mb-6">
-        <div className="w-20 h-20 rounded-full bg-[#1A1A1A] flex items-center justify-center text-[#F9F7F2] shadow-sm ring-4 ring-[#EAE8E2]">
-          <HeartPulse className="w-9 h-9 text-[#D4A373] animate-pulse" />
+        {/* Top Operational Pill Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#111827] text-emerald-400 text-[11px] font-mono tracking-wider border border-emerald-500/40 mb-6 shadow-md">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-white font-medium">AYUSHMAN BHARAT DIGITAL MISSION</span>
+          <span className="text-emerald-400">•</span>
+          <span className="text-emerald-300">SMART TRIAGE KIOSK v2.4</span>
         </div>
-        <div className="absolute -bottom-1 -right-1 bg-[#D4A373] text-[#1A1A1A] p-1.5 rounded-full shadow-xs border border-[#F9F7F2]">
-          <ShieldCheck className="w-3.5 h-3.5" />
+
+        {/* Biometric Pulse Central Icon Hub */}
+        <div className="relative mx-auto mb-6 w-24 h-24 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping duration-1000" />
+          <div className="absolute -inset-2 rounded-full border border-teal-600/30 animate-spin" style={{ animationDuration: '12s' }} />
+          
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#111827] via-[#1E293B] to-[#0F172A] flex items-center justify-center text-white shadow-xl border border-emerald-500/40 z-10 relative group">
+            <HeartPulse className="w-10 h-10 text-emerald-400 animate-pulse" />
+            <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-slate-950 p-1.5 rounded-lg shadow-md">
+              <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Title & Subtitle in Deep High-Contrast Ink */}
+        <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#0F172A] tracking-tight max-w-2xl mx-auto leading-tight">
+          {t.startGreeting}
+        </h1>
+        <p className="text-[#334155] text-sm sm:text-base mt-3 max-w-xl mx-auto font-sans leading-relaxed">
+          {t.startSubtitle}
+        </p>
+
+        {/* Primary Interactive Touch CTA */}
+        <div className="mt-8 w-full max-w-md mx-auto">
+          <button
+            onClick={onStart}
+            className="w-full py-4 px-8 rounded-2xl bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#0F172A] hover:from-black hover:to-slate-900 text-white font-sans uppercase tracking-[0.2em] text-xs font-bold shadow-xl hover:shadow-emerald-500/20 active:scale-98 transition-all flex items-center justify-center gap-3 border border-emerald-500/40 cursor-pointer group"
+          >
+            <Activity className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform stroke-[2.5]" />
+            <span>{t.tapToBegin}</span>
+            <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* Live Kiosk Telemetry Indicators with Warm Pearl Inset Panels */}
+        <div className="mt-8 pt-6 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+          <div className="bg-white/80 p-2.5 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-2">
+            <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">Triage Engine</div>
+              <div className="text-[11px] font-bold text-slate-900">AIIMS Multimodal</div>
+            </div>
+          </div>
+          <div className="bg-white/80 p-2.5 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-sky-600 shrink-0" />
+            <div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">ABHA Gateway</div>
+              <div className="text-[11px] font-bold text-slate-900">M1 / M2 / M3 Ready</div>
+            </div>
+          </div>
+          <div className="bg-white/80 p-2.5 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-2">
+            <Languages className="w-4 h-4 text-amber-600 shrink-0" />
+            <div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">Bhashini Voice</div>
+              <div className="text-[11px] font-bold text-slate-900">7 Indic Dialects</div>
+            </div>
+          </div>
+          <div className="bg-white/80 p-2.5 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-2">
+            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+            <div>
+              <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">Data Privacy</div>
+              <div className="text-[11px] font-bold text-slate-900">DPDP Act 2023</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main Serif Title */}
-      <h1 className="text-4xl sm:text-5xl font-serif font-light text-[#1A1A1A] tracking-tight max-w-2xl leading-tight">
-        {t.startGreeting}
-      </h1>
-      <p className="text-[#1A1A1A]/70 text-sm sm:text-base mt-3 max-w-xl font-serif italic leading-relaxed">
-        {t.startSubtitle}
-      </p>
-
-      {/* Primary Touch Call to Action */}
-      <div className="mt-8 w-full max-w-md">
-        <button
-          onClick={onStart}
-          className="w-full py-4 px-8 rounded-full bg-[#1A1A1A] hover:bg-black text-[#F9F7F2] font-sans uppercase tracking-[0.2em] text-xs shadow-md active:scale-98 transition-all flex items-center justify-center gap-3 border border-white/10 cursor-pointer"
-        >
-          <span>{t.tapToBegin}</span>
-          <ArrowRight className="w-4 h-4 text-[#D4A373]" />
-        </button>
-      </div>
-
-      {/* Quick Demo Patients Showcase */}
-      <div className="mt-12 w-full max-w-3xl pt-8 border-t border-[#1A1A1A]/10">
-        <div className="flex items-center justify-center gap-2 text-[10px] font-sans font-bold uppercase tracking-[0.25em] text-[#1A1A1A]/60 mb-4">
-          <Sparkles className="w-3.5 h-3.5 text-[#D4A373]" />
-          <span>Curated Clinical Personas (Instant Triage Load)</span>
+      {/* Quick Demo Personas Showcase (Pearl/Ivory Frosted Cards) */}
+      <div className="mt-8 w-full max-w-4xl">
+        <div className="flex items-center justify-between px-2 mb-3">
+          <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+            <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <Sparkles className="w-3.5 h-3.5" />
+            </span>
+            <span className="text-white font-extrabold tracking-wide drop-shadow-md">
+              Instant Demo Personas (Judges 1-Click Triage Test)
+            </span>
+          </div>
+          <span className="text-[11px] font-mono font-semibold text-emerald-300 bg-slate-950/80 px-3 py-1 rounded-full border border-emerald-500/40 shadow-xs">
+            3 Live Clinical Scenarios
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -79,49 +136,54 @@ export const Step0Start: React.FC<Step0StartProps> = ({
             <button
               key={p.id}
               onClick={() => onQuickLoadPatient(p)}
-              className="p-4 rounded-xl border border-[#1A1A1A]/10 bg-white hover:border-[#1A1A1A]/30 hover:bg-[#EAE8E2]/40 text-left transition-all group cursor-pointer shadow-2xs relative"
+              className="p-4 rounded-2xl border border-white/40 bg-[#FAF9F5]/95 hover:bg-white text-left transition-all group cursor-pointer shadow-xl hover:shadow-2xl hover:-translate-y-1 backdrop-blur-xl relative overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-2">
+              {/* Top Accent Line */}
+              <div
+                className={`absolute top-0 left-0 right-0 h-1.5 ${
+                  p.tag === 'Emergency Cardiac'
+                    ? 'bg-rose-500'
+                    : p.tag === 'Ayurvedic Chronic'
+                    ? 'bg-emerald-600'
+                    : 'bg-sky-600'
+                }`}
+              />
+
+              <div className="flex items-center justify-between mb-2 mt-1">
                 <span
-                  className={`text-[9px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-full ${
+                  className={`text-[9px] uppercase font-mono font-bold tracking-wider px-2.5 py-0.5 rounded-full ${
                     p.tag === 'Emergency Cardiac'
-                      ? 'bg-[#A84A38]/10 text-[#A84A38] border border-[#A84A38]/20'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
                       : p.tag === 'Ayurvedic Chronic'
-                      ? 'bg-[#5E7153]/10 text-[#5E7153] border border-[#5E7153]/20'
-                      : 'bg-[#1A1A1A]/10 text-[#1A1A1A] border border-[#1A1A1A]/20'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-sky-100 text-sky-800 border border-sky-200'
                   }`}
                 >
                   {p.tag}
                 </span>
-                <UserCheck className="w-3.5 h-3.5 text-[#1A1A1A]/40 group-hover:text-[#D4A373]" />
+                <UserCheck className="w-4 h-4 text-slate-400 group-hover:text-emerald-700 transition-colors" />
               </div>
-              <div className="font-serif text-base font-medium text-[#1A1A1A]">{p.auth.patientName}</div>
-              <div className="text-[11px] text-[#1A1A1A]/65 mt-1 line-clamp-2 leading-relaxed">
+
+              <div className="font-serif text-base font-bold text-slate-900">
+                {p.auth.patientName}
+              </div>
+              
+              <div className="text-[11px] font-mono text-slate-500 font-medium mt-0.5">
+                ABHA: {p.auth.abhaId} • {p.auth.age}Y/{p.auth.gender}
+              </div>
+
+              <div className="text-[11px] text-slate-700 mt-2 line-clamp-2 leading-relaxed font-sans">
                 {p.description}
               </div>
-              <div className="text-[10px] text-[#D4A373] font-sans uppercase tracking-[0.15em] font-semibold mt-3 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                <span>Examine Profile</span>
-                <ArrowRight className="w-3 h-3" />
+
+              <div className="text-[10px] text-emerald-800 font-mono uppercase tracking-wider font-bold mt-3.5 flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+                <Stethoscope className="w-3.5 h-3.5" />
+                <span>Simulate Patient Triage</span>
+                <ArrowRight className="w-3 h-3 ml-auto" />
               </div>
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Compliance Footer Bar */}
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-[10px] font-sans uppercase tracking-[0.15em] text-[#1A1A1A]/50">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#5E7153]" />
-          <span>DPDP Act 2023 Sec 6(1)</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <QrCode className="w-3.5 h-3.5 text-[#1A1A1A]" />
-          <span>ABHA M1/M2/M3 Gateway</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Languages className="w-3.5 h-3.5 text-[#D4A373]" />
-          <span>7 Multilingual Streams</span>
-        </span>
       </div>
     </div>
   );

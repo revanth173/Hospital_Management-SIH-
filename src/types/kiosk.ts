@@ -94,6 +94,18 @@ export interface UploadedDocument {
   fileSize: string;
   extractedEntities: ExtractedEntity[];
   rawTextExcerpt: string;
+  doctorVerification?: {
+    isVerifiedDoctor: boolean;
+    doctorName?: string;
+    nmcRegNo?: string;
+    hospitalOrClinic?: string;
+    signatureDetected: boolean;
+    stampDetected: boolean;
+    verificationStatus: 'VALID_RMP_PRESCRIPTION' | 'OFFICIAL_LAB_REPORT' | 'SELF_REPORTED_UNVERIFIED' | 'LOW_CONFIDENCE_MANUAL_REVIEW';
+    ocrConfidence?: number; // 0.0 - 1.0 e.g. 0.62 for illegible
+    attachRawScanToPhysicianReport?: boolean;
+    physicianReviewReason?: string;
+  };
 }
 
 export interface EHRSummary {

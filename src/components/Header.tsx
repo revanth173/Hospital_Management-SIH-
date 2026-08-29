@@ -11,7 +11,10 @@ import {
   Workflow,
   Monitor,
   HeartPulse,
+  Lock,
+  BadgeCheck,
 } from 'lucide-react';
+import { DoctorSession } from './DoctorAuthModal';
 
 interface HeaderProps {
   currentLanguage: Language;
@@ -23,6 +26,7 @@ interface HeaderProps {
   onEmergencyTrigger: () => void;
   patientAuth?: PatientAuth;
   redFlag?: EmergencyRedFlag;
+  doctorSession?: DoctorSession | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,27 +39,28 @@ export const Header: React.FC<HeaderProps> = ({
   onEmergencyTrigger,
   patientAuth,
   redFlag,
+  doctorSession,
 }) => {
   const t = TRANSLATIONS[currentLanguage];
 
   return (
-    <header className="bg-[#1A1A1A] text-[#F9F7F2] border-b border-[#1A1A1A]/40 sticky top-0 z-40 shadow-sm">
+    <header className="bg-slate-950/80 backdrop-blur-xl text-slate-100 border-b border-emerald-500/20 sticky top-0 z-40 shadow-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
         {/* Hospital & ABDM Identity */}
         <div className="flex items-center gap-3.5">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#EAE8E2] text-[#1A1A1A] border border-white/20 shadow-xs">
-            <HeartPulse className="w-5 h-5 text-[#1A1A1A]" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-sky-500/20 text-emerald-400 border border-emerald-500/40 shadow-lg">
+            <HeartPulse className="w-5 h-5 text-emerald-400 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="font-serif text-lg sm:text-xl font-normal tracking-tight text-[#F9F7F2]">
-                Swasthya<span className="italic font-light text-[#D4A373]">Kiosk</span>
+              <span className="font-serif text-lg sm:text-xl font-medium tracking-tight text-white">
+                Swasthya<span className="italic font-light text-emerald-400">Kiosk</span>
               </span>
-              <span className="text-[9px] uppercase font-mono tracking-[0.2em] px-2 py-0.5 rounded-full bg-white/10 text-[#D4A373] border border-white/10">
+              <span className="text-[9px] uppercase font-mono tracking-[0.2em] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 ABDM M3
               </span>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[9px] uppercase font-sans tracking-[0.15em] px-2 py-0.5 rounded-full bg-white/5 text-[#EAE8E2]/80 border border-white/10">
-                <ShieldCheck className="w-3 h-3 text-[#D4A373]" /> DPDP Act 2023
+              <span className="hidden sm:inline-flex items-center gap-1 text-[9px] uppercase font-sans tracking-[0.15em] px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" /> DPDP Act 2023
               </span>
             </div>
             <p className="text-[11px] text-[#EAE8E2]/60 font-sans tracking-wide">
@@ -94,14 +99,25 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => onViewChange('doctor_portal')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-sans uppercase tracking-[0.15em] transition-all cursor-pointer ${
               activeView === 'doctor_portal'
-                ? 'bg-[#D4A373] text-[#1A1A1A] font-semibold shadow-xs'
+                ? 'bg-emerald-500 text-slate-950 font-bold shadow-md'
+                : doctorSession
+                ? 'text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-500/30'
                 : 'text-[#EAE8E2]/70 hover:text-white'
             }`}
+            title={doctorSession ? `Logged in as ${doctorSession.doctorName}` : 'Restricted to Registered Medical Practitioners'}
           >
             <Stethoscope className="w-3.5 h-3.5" />
             <span>Doctor EMR</span>
+            {!doctorSession ? (
+              <span className="flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                <Lock className="w-2.5 h-2.5 text-amber-400" />
+                <span>PIN</span>
+              </span>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs" />
+            )}
             {redFlag?.isRedFlag && (
-              <span className="w-2 h-2 rounded-full bg-[#A84A38] animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
             )}
           </button>
         </div>

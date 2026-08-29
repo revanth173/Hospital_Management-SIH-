@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language, SocratesAssessment, InputMode } from '../../types/kiosk';
 import { TRANSLATIONS } from '../../data/languages';
+import { startLiveSpeechRecognition, speakText } from '../../utils/speechHelper';
 import {
   Stethoscope,
   AlertCircle,
@@ -11,6 +12,10 @@ import {
   HeartCrack,
   Clock,
   Sparkles,
+  Mic,
+  MicOff,
+  RotateCcw,
+  Volume2,
 } from 'lucide-react';
 
 interface Step5SocratesProps {
@@ -30,6 +35,58 @@ export const Step5AllopathicSocrates: React.FC<Step5SocratesProps> = ({
 }) => {
   const t = TRANSLATIONS[language];
   const [data, setData] = useState<SocratesAssessment>(initialData);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [voiceSpokenText, setVoiceSpokenText] = useState('');
+  const [micError, setMicError] = useState<string | null>(null);
+
+  // Auto-start voice recognition if inputMode is 'voice'
+  useEffect(() => {
+    let recognitionHandler: { stop: () => void } | null = null;
+
+    if (isRecordingVoice) {
+      setMicError(null);
+      recognitionHandler = startLiveSpeechRecognition(
+        language,
+        (res) => {
+          setVoiceSpokenText(res.transcript);
+
+          // Smart keyword parser from spoken regional voice
+          const lower = res.transcript.toLowerCase();
+          if (lower.includes('గుండె') || lower.includes('ఛాతీ') || lower.includes('chest') || lower.includes('सीना') || lower.includes('நெஞ்சு')) {
+            setData(prev => ({ ...prev, siteLocationCategory: 'chest' }));
+          } else if (lower.includes('తల') || lower.includes('head') || lower.includes('सिर') || lower.includes('தலை')) {
+            setData(prev => ({ ...prev, siteLocationCategory: 'head' }));
+          } else if (lower.includes('కడుపు') || lower.includes('stomach') || lower.includes('abdomen') || lower.includes('पेट') || lower.includes('வயிறு')) {
+            setData(prev => ({ ...prev, siteLocationCategory: 'abdomen' }));
+          } else if (lower.includes('కాలు') || lower.includes('చేయి') || lower.includes('leg') || lower.includes('knee') || lower.includes('limb') || lower.includes('हात') || lower.includes('கை')) {
+            setData(prev => ({ ...prev, siteLocationCategory: 'limbs' }));
+          } else if (lower.includes('వెన్ను') || lower.includes('నడుము') || lower.includes('back') || lower.includes('पीठ')) {
+            setData(prev => ({ ...prev, siteLocationCategory: 'back' }));
+          }
+
+          // Character detection
+          if (lower.includes('మంట') || lower.includes('burning') || lower.includes('जलन')) {
+            setData(prev => ({ ...prev, character: 'Burning' }));
+          } else if (lower.includes('తీవ్ర') || lower.includes('గుచ్చు') || lower.includes('sharp') || lower.includes('चुभन')) {
+            setData(prev => ({ ...prev, character: 'Sharp / Stabbing' }));
+          }
+        },
+        (err) => {
+          setMicError(err);
+          setIsRecordingVoice(false);
+        },
+        () => {
+          setIsRecordingVoice(false);
+        }
+      );
+    }
+
+    return () => {
+      if (recognitionHandler) {
+        recognitionHandler.stop();
+      }
+    };
+  }, [isRecordingVoice, language]);
 
   const siteCategories: Array<{
     id: SocratesAssessment['siteLocationCategory'];
@@ -128,6 +185,101 @@ export const Step5AllopathicSocrates: React.FC<Step5SocratesProps> = ({
 
       {/* Main SOCRATES Form Grid */}
       <div className="bg-white border border-[#1A1A1A]/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
+        {/* Live Microphone Banner */}
+        <div className="p-4 rounded-2xl bg-[#EAE8E2]/60 border border-[#1A1A1A]/10 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsRecordingVoice(!isRecordingVoice)}
+              className={`w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-all shadow-xs ${
+                isRecordingVoice
+                  ? 'bg-[#843C2E] text-white animate-pulse'
+                  : 'bg-[#1A1A1A] hover:bg-black text-[#F9F7F2]'
+              }`}
+            >
+              {isRecordingVoice ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-[#D4A373]" />}
+            </button>
+            <div>
+              <div className="text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-2">
+                <span>{isRecordingVoice ? 'Recording Your Voice Live (మాట్లాడండి)...' : 'Live Voice Input (మైక్రోఫోన్)'}</span>
+                {isRecordingVoice && (
+                  <span className="w-2 h-2 rounded-full bg-[#843C2E] animate-ping" />
+                )}
+              </div>
+              <div className="text-[11px] text-[#1A1A1A]/70 font-serif italic">
+                {isRecordingVoice
+                  ? 'Speak your symptoms in Telugu, Hindi or English...'
+                  : 'Tap the mic button and describe where it hurts in your mother tongue'}
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsRecordingVoice(!isRecordingVoice)}
+            className={`px-4 py-2 rounded-full text-xs font-sans uppercase tracking-wider transition-all cursor-pointer ${
+              isRecordingVoice
+                ? 'bg-[#843C2E] text-white'
+                : 'bg-white border border-[#1A1A1A]/20 text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white'
+            }`}
+          >
+            {isRecordingVoice ? 'Stop Speaking' : 'Start Mic 🎙️'}
+          </button>
+
+          {/* Live Spoken Speech Display with Voice Repeat & Tap to Correct */}
+          {voiceSpokenText && (
+            <div className="w-full mt-2 p-3 bg-white rounded-xl border border-[#5E7153]/30 text-xs font-serif text-[#1A1A1A] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-sans font-bold text-[10px] text-[#5E7153] uppercase tracking-wider block">
+                  Transcribed Spoken Words:
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      speakText(`మీరు చెప్పింది: ${voiceSpokenText}. మార్చడానికి స్క్రీన్ పై ట్యాప్ చేయండి లేదా రిపీట్ అనండి.`, language);
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-[#EAE8E2] hover:bg-[#dcd9d2] text-[10px] font-sans font-bold text-[#1A1A1A] flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Volume2 className="w-3 h-3 text-[#D4A373]" />
+                    <span>Listen Back</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVoiceSpokenText('');
+                      setIsRecordingVoice(true);
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-[#843C2E]/10 hover:bg-[#843C2E]/20 text-[10px] font-sans font-bold text-[#843C2E] flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Repeat Voice (మళ్ళీ చెప్పండి) 🔁</span>
+                  </button>
+                </div>
+              </div>
+              <div className="p-2 bg-[#F9F7F2] rounded-lg border border-[#1A1A1A]/10 italic">
+                "{voiceSpokenText}"
+              </div>
+              <div className="text-[10px] font-sans text-[#1A1A1A]/60 flex items-center justify-between">
+                <span>💡 తప్పుగా రికార్డ్ అయితే పైన <b>"Repeat Voice"</b> నొక్కండి లేదా క్రింద ఆప్షన్లపై <b>డైరెక్ట్ ట్యాప్</b> చేసి సరిచేయండి.</span>
+                <button
+                  type="button"
+                  onClick={() => setVoiceSpokenText('')}
+                  className="text-[#843C2E] hover:underline font-bold"
+                >
+                  Clear ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {micError && (
+            <div className="w-full mt-2 p-2 bg-[#843C2E]/10 rounded-lg border border-[#843C2E]/20 text-[11px] text-[#843C2E] font-sans">
+              ⚠️ {micError}
+            </div>
+          )}
+        </div>
+
         {/* 1. Site (Anatomical Region) */}
         <div>
           <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">

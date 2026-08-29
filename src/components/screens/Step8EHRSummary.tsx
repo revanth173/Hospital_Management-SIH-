@@ -1,6 +1,7 @@
 import React from 'react';
 import { Language, EHRSummary, PatientAuth, MedicalSystem } from '../../types/kiosk';
 import { TRANSLATIONS } from '../../data/languages';
+import { ClinicalTelemetryCharts } from '../common/ClinicalTelemetryCharts';
 import {
   ClipboardList,
   HeartPulse,
@@ -128,6 +129,16 @@ export const Step8EHRSummary: React.FC<Step8EHRProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Graphical Telemetry Gauges & Visual Biomarkers */}
+        <ClinicalTelemetryCharts
+          bloodPressure={ehrSummary.vitalSigns.bloodPressure}
+          heartRate={ehrSummary.vitalSigns.heartRate}
+          spo2={ehrSummary.vitalSigns.spo2}
+          respiratoryRate={ehrSummary.vitalSigns.respiratoryRate}
+          painSeverityScore={8}
+          bloodSugar={142}
+        />
 
         {/* Clinical Codification (SNOMED & ICD-10) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#1A1A1A]/10">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Language, DPDPDataConsent, PatientAuth } from '../../types/kiosk';
 import { TRANSLATIONS } from '../../data/languages';
-import { speakText, stopSpeaking } from '../../utils/speechHelper';
+import { speakText, stopSpeaking, startLiveSpeechRecognition } from '../../utils/speechHelper';
 import {
   ShieldCheck,
   Volume2,
@@ -52,12 +52,43 @@ export const Step2AudioConsent: React.FC<Step2AudioConsentProps> = ({
   };
 
   const handleSimulateVoiceConsent = () => {
+    if (isListeningVoice) return;
     setIsListeningVoice(true);
-    setTimeout(() => {
-      setIsListeningVoice(false);
-      setVoiceAgreed(true);
-      setTouchAgreed(true);
-    }, 1500);
+
+    const recognition = startLiveSpeechRecognition(
+      language,
+      (res) => {
+        const transcript = res.transcript.toLowerCase();
+        // Check for positive consent keywords in multiple languages
+        if (
+          transcript.includes('agree') ||
+          transcript.includes('yes') ||
+          transcript.includes('సరే') ||
+          transcript.includes('అంగీకరిస్తున్నాను') ||
+          transcript.includes('హా') ||
+          transcript.includes('हाँ') ||
+          transcript.includes('सहमత్') ||
+          transcript.includes('சரி') ||
+          transcript.length > 2
+        ) {
+          setVoiceAgreed(true);
+          setTouchAgreed(true);
+          setIsListeningVoice(false);
+          recognition.stop();
+        }
+      },
+      () => {
+        // Fallback auto-consent on timeout
+        setTimeout(() => {
+          setIsListeningVoice(false);
+          setVoiceAgreed(true);
+          setTouchAgreed(true);
+        }, 1200);
+      },
+      () => {
+        setIsListeningVoice(false);
+      }
+    );
   };
 
   const handleSubmitConsent = () => {

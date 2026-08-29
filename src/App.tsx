@@ -28,6 +28,8 @@ import { generateFhirR4Bundle } from './utils/fhirGenerator';
 import { Header } from './components/Header';
 import { FlowchartVisualizer } from './components/FlowchartVisualizer';
 import { DoctorEmrPortal } from './components/DoctorEmrPortal';
+import { DoctorAuthModal, DoctorSession } from './components/DoctorAuthModal';
+import { NeuralBiometricBackground } from './components/common/NeuralBiometricBackground';
 
 // Screens
 import { Step0Start } from './components/screens/Step0Start';
@@ -52,6 +54,10 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeView, setActiveView] = useState<'kiosk' | 'flowchart' | 'doctor_portal'>('kiosk');
   const [currentStep, setCurrentStep] = useState<KioskStep>('start');
+
+  // Physician / Doctor Session Auth Gate (Restricted Access)
+  const [doctorSession, setDoctorSession] = useState<DoctorSession | null>(null);
+  const [isDoctorAuthModalOpen, setIsDoctorAuthModalOpen] = useState(false);
 
   // Active Patient States (Default loaded with Ramesh Kumar persona)
   const defaultPreset = SAMPLE_PATIENTS[0];
@@ -186,6 +192,26 @@ export default function App() {
     setActiveView('kiosk');
   };
 
+  // Navigation with Doctor Auth Guard
+  const handleViewChange = (view: 'kiosk' | 'flowchart' | 'doctor_portal') => {
+    if (view === 'doctor_portal' && !doctorSession) {
+      setIsDoctorAuthModalOpen(true);
+      return;
+    }
+    setActiveView(view);
+  };
+
+  const handleDoctorAuthSuccess = (session: DoctorSession) => {
+    setDoctorSession(session);
+    setIsDoctorAuthModalOpen(false);
+    setActiveView('doctor_portal');
+  };
+
+  const handleLockDoctorTerminal = () => {
+    setDoctorSession(null);
+    setActiveView('kiosk');
+  };
+
   // Reset Kiosk
   const handleResetKiosk = () => {
     setPatientAuth({
@@ -204,7 +230,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2] text-[#1A1A1A] flex flex-col antialiased selection:bg-[#1A1A1A] selection:text-[#F9F7F2]">
+    <div className="relative min-h-screen bg-transparent text-slate-100 flex flex-col antialiased selection:bg-emerald-500 selection:text-black overflow-x-hidden">
+      {/* 3D Interactive Cyber Neural Network Background */}
+      <NeuralBiometricBackground />
+
       {/* Universal Top Header */}
       <Header
         currentLanguage={currentLanguage}
@@ -212,10 +241,18 @@ export default function App() {
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(!soundEnabled)}
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={handleViewChange}
         onEmergencyTrigger={handleEmergencySos}
         patientAuth={patientAuth}
         redFlag={redFlagStatus}
+        doctorSession={doctorSession}
+      />
+
+      {/* Physician Restricted Access Authentication Modal */}
+      <DoctorAuthModal
+        isOpen={isDoctorAuthModalOpen}
+        onClose={() => setIsDoctorAuthModalOpen(false)}
+        onSuccess={handleDoctorAuthSuccess}
       />
 
       {/* Main App Canvas */}
@@ -245,7 +282,9 @@ export default function App() {
             uploadedDocs={uploadedDocs}
             queueToken={queueToken}
             medicalSystem={medicalSystem}
+            doctorSession={doctorSession}
             onBackToKiosk={() => setActiveView('kiosk')}
+            onLockTerminal={handleLockDoctorTerminal}
           />
         )}
 
@@ -457,7 +496,7 @@ export default function App() {
                 patientAuth={patientAuth}
                 ehrSummary={ehrSummary}
                 medicalSystem={medicalSystem}
-                onOpenDoctorPortal={() => setActiveView('doctor_portal')}
+                onOpenDoctorPortal={() => handleViewChange('doctor_portal')}
                 onResetKiosk={handleResetKiosk}
               />
             )}
