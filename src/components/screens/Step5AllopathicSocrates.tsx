@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Language, SocratesAssessment, InputMode } from '../../types/kiosk';
 import { TRANSLATIONS } from '../../data/languages';
-import { startLiveSpeechRecognition, speakText } from '../../utils/speechHelper';
+import { SOCRATES_QUESTIONS_FLOW, SocratesQuestionStep } from '../../data/socratesQuestions';
+import { startLiveSpeechRecognition, speakText, stopSpeaking } from '../../utils/speechHelper';
 import {
   Stethoscope,
-  AlertCircle,
-  Activity,
-  ArrowRight,
-  Flame,
-  Zap,
-  HeartCrack,
-  Clock,
-  Sparkles,
+  Volume2,
   Mic,
   MicOff,
+  ArrowRight,
+  ArrowLeft,
   RotateCcw,
-  Volume2,
+  CheckCircle2,
+  Sparkles,
+  HeartCrack,
+  HelpCircle,
+  VolumeX,
+  FastForward,
 } from 'lucide-react';
 
 interface Step5SocratesProps {
@@ -35,40 +36,66 @@ export const Step5AllopathicSocrates: React.FC<Step5SocratesProps> = ({
 }) => {
   const t = TRANSLATIONS[language];
   const [data, setData] = useState<SocratesAssessment>(initialData);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceSpokenText, setVoiceSpokenText] = useState('');
   const [micError, setMicError] = useState<string | null>(null);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [autoAdvanceCountdown, setAutoAdvanceCountdown] = useState<number | null>(null);
+  const [recognizedFeedback, setRecognizedFeedback] = useState<string | null>(null);
 
-  // Auto-start voice recognition if inputMode is 'voice'
+  const currentQ: SocratesQuestionStep = SOCRATES_QUESTIONS_FLOW[currentQuestionIndex];
+  const totalQuestions = SOCRATES_QUESTIONS_FLOW.length;
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
+  // Auto-Voice question prompt when switching questions or starting
   useEffect(() => {
-    let recognitionHandler: { stop: () => void } | null = null;
+    setVoiceSpokenText('');
+    setRecognizedFeedback(null);
+    setAutoAdvanceCountdown(null);
 
+    const questionVoice = currentQ.voicePrompt[language] || currentQ.voicePrompt.en;
+    
+    // Announce the question audibly
+    setIsAiSpeaking(true);
+    const cancelSpeech = speakText(
+      questionVoice,
+      language,
+      () => setIsAiSpeaking(true),
+      () => {
+        setIsAiSpeaking(false);
+        // Automatically start listening after asking if in voice mode
+        if (inputMode === 'voice') {
+          setIsRecordingVoice(true);
+        }
+      }
+    );
+
+    return () => {
+      cancelSpeech();
+      stopSpeaking();
+    };
+  }, [currentQuestionIndex, language, inputMode]);
+
+  // Speech Recognition Hook
+  useEffect(() => {
     if (isRecordingVoice) {
       setMicError(null);
-      recognitionHandler = startLiveSpeechRecognition(
+      recognitionRef.current = startLiveSpeechRecognition(
         language,
         (res) => {
           setVoiceSpokenText(res.transcript);
+          const spoken = res.transcript.toLowerCase();
 
-          // Smart keyword parser from spoken regional voice
-          const lower = res.transcript.toLowerCase();
-          if (lower.includes('గుండె') || lower.includes('ఛాతీ') || lower.includes('chest') || lower.includes('सीना') || lower.includes('நெஞ்சு')) {
-            setData(prev => ({ ...prev, siteLocationCategory: 'chest' }));
-          } else if (lower.includes('తల') || lower.includes('head') || lower.includes('सिर') || lower.includes('தலை')) {
-            setData(prev => ({ ...prev, siteLocationCategory: 'head' }));
-          } else if (lower.includes('కడుపు') || lower.includes('stomach') || lower.includes('abdomen') || lower.includes('पेट') || lower.includes('வயிறு')) {
-            setData(prev => ({ ...prev, siteLocationCategory: 'abdomen' }));
-          } else if (lower.includes('కాలు') || lower.includes('చేయి') || lower.includes('leg') || lower.includes('knee') || lower.includes('limb') || lower.includes('हात') || lower.includes('கை')) {
-            setData(prev => ({ ...prev, siteLocationCategory: 'limbs' }));
-          } else if (lower.includes('వెన్ను') || lower.includes('నడుము') || lower.includes('back') || lower.includes('पीठ')) {
-            setData(prev => ({ ...prev, siteLocationCategory: 'back' }));
-          }
-
-          // Character detection
-          if (lower.includes('మంట') || lower.includes('burning') || lower.includes('जलन')) {
-            setData(prev => ({ ...prev, character: 'Burning' }));
-          } else if (lower.includes('తీవ్ర') || lower.includes('గుచ్చు') || lower.includes('sharp') || lower.includes('चुभन')) {
-            setData(prev => ({ ...prev, character: 'Sharp / Stabbing' }));
+          // Intelligent Keyword Matcher for the Current Question
+          if (currentQ.options) {
+            for (const opt of currentQ.options) {
+              const matches = opt.keywords.some((kw) => spoken.includes(kw.toLowerCase()));
+              if (matches) {
+                applyAnswer(currentQ, opt.id, opt.label[language] || opt.label.en);
+                break;
+              }
+            }
           }
         },
         (err) => {
@@ -79,409 +106,410 @@ export const Step5AllopathicSocrates: React.FC<Step5SocratesProps> = ({
           setIsRecordingVoice(false);
         }
       );
+    } else {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     }
 
     return () => {
-      if (recognitionHandler) {
-        recognitionHandler.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
       }
     };
-  }, [isRecordingVoice, language]);
+  }, [isRecordingVoice, currentQuestionIndex, language]);
 
-  const siteCategories: Array<{
-    id: SocratesAssessment['siteLocationCategory'];
-    label: string;
-    description: string;
-  }> = [
-    { id: 'chest', label: 'Chest / Precordial', description: 'Retrosternal, Left/Right Hemithorax' },
-    { id: 'head', label: 'Head & Neurological', description: 'Frontal, Occipital, Unilateral Temple' },
-    { id: 'abdomen', label: 'Abdomen / GI', description: 'Epigastric, RUQ, RLQ, Periumbilical' },
-    { id: 'throat', label: 'Throat & Upper Airway', description: 'Pharynx, Larynx, Tonsillar' },
-    { id: 'limbs', label: 'Limbs & Joints', description: 'Knees, Shoulders, Calves, Wrists' },
-    { id: 'back', label: 'Spine & Lumbar Back', description: 'Cervical, Thoracic, Lower Back' },
-  ];
+  // Auto advance timer after voice detection
+  useEffect(() => {
+    let timer: any = null;
+    if (autoAdvanceCountdown !== null && autoAdvanceCountdown > 0) {
+      timer = setTimeout(() => {
+        setAutoAdvanceCountdown((prev) => (prev !== null ? prev - 1 : null));
+      }, 1000);
+    } else if (autoAdvanceCountdown === 0) {
+      handleNextQuestion();
+    }
+    return () => clearTimeout(timer);
+  }, [autoAdvanceCountdown]);
 
-  const characterOptions: SocratesAssessment['character'][] = [
-    'Crushing / Constricting',
-    'Sharp / Stabbing',
-    'Dull Aching',
-    'Burning',
-    'Throbbing',
-    'Colicky',
-  ];
+  // Apply Answer & trigger affirmative feedback
+  const applyAnswer = (question: SocratesQuestionStep, value: string, displayLabel?: string) => {
+    setData((prev) => {
+      const updated = { ...prev };
+      switch (question.key) {
+        case 'site':
+          updated.siteLocationCategory = value as any;
+          updated.site = displayLabel || value;
+          break;
+        case 'onset':
+          updated.onset = value as any;
+          break;
+        case 'character':
+          updated.character = value as any;
+          break;
+        case 'radiation':
+          updated.radiation = value as any;
+          break;
+        case 'associations':
+          if (!updated.associations.includes(value)) {
+            updated.associations = [...updated.associations, value];
+          }
+          break;
+        case 'timeCourse':
+          updated.timeCourse = value as any;
+          break;
+        case 'exacerbating':
+          if (!updated.exacerbatingFactors.includes(value)) {
+            updated.exacerbatingFactors = [...updated.exacerbatingFactors, value];
+          }
+          break;
+        case 'severity':
+          updated.severityScore = Number(value);
+          break;
+      }
+      return updated;
+    });
 
-  const onsetOptions: SocratesAssessment['onset'][] = [
-    'Sudden (<15 mins)',
-    'Rapid (1-2 hours)',
-    'Gradual (days)',
-    'Post-trauma',
-    'During exertion',
-  ];
+    setRecognizedFeedback(displayLabel || value);
+    setIsRecordingVoice(false);
 
-  const radiationOptions: SocratesAssessment['radiation'][] = [
-    'Left arm, shoulder & jaw',
-    'Through to back',
-    'Down right lower abdomen',
-    'None',
-  ];
+    // Provide affirmative voice feedback in regional language and auto-advance
+    const confirmPhrase = language === 'te' 
+      ? `నమోదు చేసాను: ${displayLabel || value}. తర్వాతి ప్రశ్నకు వెళ్తున్నాం.`
+      : language === 'hi'
+      ? `दर्ज किया गया: ${displayLabel || value}. अगले प्रश्न पर जा रहे हैं।`
+      : `Noted: ${displayLabel || value}. Moving to the next question.`;
 
-  const commonAssociations = [
-    'Diaphoresis (Profuse sweating)',
-    'Dyspnea (Shortness of breath)',
-    'Nausea/Vomiting',
-    'Dizziness / Presyncope',
-    'Palpitations',
-    'High fever (>101°F)',
-    'Cough with expectoration',
-  ];
-
-  const toggleAssociation = (assoc: string) => {
-    setData((prev) => ({
-      ...prev,
-      associations: prev.associations.includes(assoc)
-        ? prev.associations.filter((a) => a !== assoc)
-        : [...prev.associations, assoc],
-    }));
+    speakText(confirmPhrase, language);
+    setAutoAdvanceCountdown(2);
   };
 
-  const isCardiacHighRisk =
+  const handleNextQuestion = () => {
+    setAutoAdvanceCountdown(null);
+    setRecognizedFeedback(null);
+    stopSpeaking();
+
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    } else {
+      // Completed all 8 questions -> Proceed to Step 6
+      onSubmitSocrates(data);
+    }
+  };
+
+  const handlePrevQuestion = () => {
+    setAutoAdvanceCountdown(null);
+    setRecognizedFeedback(null);
+    stopSpeaking();
+
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    } else {
+      onBack();
+    }
+  };
+
+  const handleRepeatQuestion = () => {
+    stopSpeaking();
+    setIsAiSpeaking(true);
+    const questionVoice = currentQ.voicePrompt[language] || currentQ.voicePrompt.en;
+    speakText(
+      questionVoice,
+      language,
+      () => setIsAiSpeaking(true),
+      () => {
+        setIsAiSpeaking(false);
+        setIsRecordingVoice(true);
+      }
+    );
+  };
+
+  // High acuity warning check
+  const isCardiacAlert =
     data.siteLocationCategory === 'chest' &&
-    (data.character.includes('Crushing') || data.severityScore >= 8) &&
-    (data.radiation.includes('arm') || data.associations.some((a) => a.includes('Diaphoresis')));
+    (data.character.includes('Crushing') || data.severityScore >= 8);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 relative">
-      {/* Background Watermark Numerals */}
-      <div className="absolute top-0 right-6 text-[140px] font-serif font-bold text-black/3 select-none pointer-events-none leading-none">
-        05A
-      </div>
+    <div className="max-w-4xl mx-auto px-4 py-4 relative">
+      {/* Top Banner: Step Progress Indicator */}
+      <div className="bg-[#0F172A] text-white rounded-3xl p-5 mb-5 border border-emerald-500/30 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-serif font-bold text-lg">
+              {currentQ.letter}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase font-mono tracking-widest text-emerald-400 font-bold">
+                  SOCRATES • Step {currentQ.stepNumber} of {totalQuestions}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono border border-slate-700">
+                  {currentQ.medicalClinicalRationale}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 font-sans mt-0.5">
+                AI Interactive Doctor Voice Consultation • ఒక్కో ప్రశ్నకు జవాబు చెప్పండి
+              </p>
+            </div>
+          </div>
 
-      {/* Step Header */}
-      <div className="text-center mb-6 relative">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#EAE8E2] text-[#1A1A1A] text-[10px] font-sans uppercase tracking-[0.2em] mb-2 border border-[#1A1A1A]/10">
-          <Stethoscope className="w-3.5 h-3.5 text-[#D4A373]" />
-          <span>Stage 05A • Allopathic SOCRATES Protocol</span>
+          {/* S-O-C-R-A-T-E-S Step Indicator Pills */}
+          <div className="flex items-center gap-1.5">
+            {SOCRATES_QUESTIONS_FLOW.map((q, idx) => {
+              const isCurrent = idx === currentQuestionIndex;
+              const isPast = idx < currentQuestionIndex;
+              return (
+                <button
+                  key={q.key}
+                  type="button"
+                  onClick={() => setCurrentQuestionIndex(idx)}
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-mono font-bold transition-all cursor-pointer ${
+                    isCurrent
+                      ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-400 shadow-md scale-110'
+                      : isPast
+                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-700/60'
+                      : 'bg-slate-800 text-slate-500 border border-slate-700'
+                  }`}
+                  title={q.title[language] || q.title.en}
+                >
+                  {isPast ? '✓' : q.letter}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-serif font-light text-[#1A1A1A] tracking-tight">{t.socratesTitle}</h2>
-        <p className="text-[#1A1A1A]/70 text-xs sm:text-sm mt-1 max-w-lg mx-auto font-serif italic">
-          Systematic 8-factor clinical assessment for high-precision diagnostic triage.
-        </p>
+
+        {/* Linear Progress Bar */}
+        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-4">
+          <div
+            className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300"
+            style={{ width: `${((currentQuestionIndex + 1) / totalQuestions) * 100}%` }}
+          />
+        </div>
       </div>
 
-      {/* High-Risk Pre-Alert Flag */}
-      {isCardiacHighRisk && (
-        <div className="mb-6 p-4 rounded-2xl bg-[#843C2E]/10 border border-[#843C2E]/30 text-[#843C2E] flex items-center gap-3 animate-pulse">
-          <HeartCrack className="w-6 h-6 text-[#843C2E] shrink-0" />
-          <div>
-            <div className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-[#843C2E]">
-              High Acuity Flag Detected
-            </div>
-            <div className="text-xs font-serif italic mt-0.5">
-              Chest discomfort with crushing character & radiation/sweating triggers urgent priority clinical triage.
-            </div>
+      {/* High-Risk Cardiac Warning Banner */}
+      {isCardiacAlert && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center gap-3 animate-pulse">
+          <HeartCrack className="w-5 h-5 text-rose-600 shrink-0" />
+          <div className="text-xs font-sans">
+            <strong>Clinical Priority Alert:</strong> Severe chest discomfort with crushing sensation logged. Triaged for priority ECG correlation.
           </div>
         </div>
       )}
 
-      {/* Main SOCRATES Form Grid */}
-      <div className="bg-white border border-[#1A1A1A]/10 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
-        {/* Live Microphone Banner */}
-        <div className="p-4 rounded-2xl bg-[#EAE8E2]/60 border border-[#1A1A1A]/10 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsRecordingVoice(!isRecordingVoice)}
-              className={`w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-all shadow-xs ${
-                isRecordingVoice
-                  ? 'bg-[#843C2E] text-white animate-pulse'
-                  : 'bg-[#1A1A1A] hover:bg-black text-[#F9F7F2]'
-              }`}
-            >
-              {isRecordingVoice ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-[#D4A373]" />}
-            </button>
-            <div>
-              <div className="text-xs font-sans font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-2">
-                <span>{isRecordingVoice ? 'Recording Your Voice Live (మాట్లాడండి)...' : 'Live Voice Input (మైక్రోఫోన్)'}</span>
-                {isRecordingVoice && (
-                  <span className="w-2 h-2 rounded-full bg-[#843C2E] animate-ping" />
+      {/* Main Active Question Card */}
+      <div className="bg-[#FAF9F5] border border-white/60 rounded-3xl p-6 sm:p-8 shadow-xl text-slate-900 space-y-6 relative overflow-hidden">
+        {/* Active Question Title & Voice Announce Banner */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-800 font-bold bg-emerald-100/80 px-2.5 py-1 rounded-lg">
+              Medical Query {currentQ.stepNumber}/{totalQuestions} ({currentQ.letter})
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRepeatQuestion}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                {isAiSpeaking ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-emerald-700 font-bold">Asking Question...</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4 text-emerald-600" />
+                    <span>Repeat Voice Question 🗣️</span>
+                  </>
                 )}
-              </div>
-              <div className="text-[11px] text-[#1A1A1A]/70 font-serif italic">
-                {isRecordingVoice
-                  ? 'Speak your symptoms in Telugu, Hindi or English...'
-                  : 'Tap the mic button and describe where it hurts in your mother tongue'}
-              </div>
+              </button>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsRecordingVoice(!isRecordingVoice)}
-            className={`px-4 py-2 rounded-full text-xs font-sans uppercase tracking-wider transition-all cursor-pointer ${
-              isRecordingVoice
-                ? 'bg-[#843C2E] text-white'
-                : 'bg-white border border-[#1A1A1A]/20 text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white'
-            }`}
-          >
-            {isRecordingVoice ? 'Stop Speaking' : 'Start Mic 🎙️'}
-          </button>
+          <h3 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 leading-tight">
+            {currentQ.title[language] || currentQ.title.en}
+          </h3>
+          <p className="text-sm text-slate-700 font-sans leading-relaxed">
+            {currentQ.voicePrompt[language] || currentQ.voicePrompt.en}
+          </p>
+        </div>
 
-          {/* Live Spoken Speech Display with Voice Repeat & Tap to Correct */}
-          {voiceSpokenText && (
-            <div className="w-full mt-2 p-3 bg-white rounded-xl border border-[#5E7153]/30 text-xs font-serif text-[#1A1A1A] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-sans font-bold text-[10px] text-[#5E7153] uppercase tracking-wider block">
-                  Transcribed Spoken Words:
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      speakText(`మీరు చెప్పింది: ${voiceSpokenText}. మార్చడానికి స్క్రీన్ పై ట్యాప్ చేయండి లేదా రిపీట్ అనండి.`, language);
-                    }}
-                    className="px-2 py-0.5 rounded-md bg-[#EAE8E2] hover:bg-[#dcd9d2] text-[10px] font-sans font-bold text-[#1A1A1A] flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <Volume2 className="w-3 h-3 text-[#D4A373]" />
-                    <span>Listen Back</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setVoiceSpokenText('');
-                      setIsRecordingVoice(true);
-                    }}
-                    className="px-2 py-0.5 rounded-md bg-[#843C2E]/10 hover:bg-[#843C2E]/20 text-[10px] font-sans font-bold text-[#843C2E] flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>Repeat Voice (మళ్ళీ చెప్పండి) 🔁</span>
-                  </button>
+        {/* Live Audio Listening Bar */}
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsRecordingVoice(!isRecordingVoice)}
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center cursor-pointer transition-all shadow-md active:scale-95 ${
+                  isRecordingVoice
+                    ? 'bg-rose-600 text-white ring-4 ring-rose-400/30 animate-pulse'
+                    : 'bg-[#0F172A] hover:bg-black text-white'
+                }`}
+              >
+                {isRecordingVoice ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6 text-emerald-400" />}
+              </button>
+              <div>
+                <div className="text-xs font-sans font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                  <span>{isRecordingVoice ? '🎙️ Listening to your Voice Live (మాట్లాడండి)...' : '🎙️ Tap to Speak (నోటితో చెప్పండి)'}</span>
+                  {isRecordingVoice && <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />}
+                </div>
+                <div className="text-[11px] text-slate-600 font-sans">
+                  {isRecordingVoice ? 'Say your answer naturally in Telugu, Hindi or English' : 'Mic is ready • Speak your answer or select an option below'}
                 </div>
               </div>
-              <div className="p-2 bg-[#F9F7F2] rounded-lg border border-[#1A1A1A]/10 italic">
-                "{voiceSpokenText}"
-              </div>
-              <div className="text-[10px] font-sans text-[#1A1A1A]/60 flex items-center justify-between">
-                <span>💡 తప్పుగా రికార్డ్ అయితే పైన <b>"Repeat Voice"</b> నొక్కండి లేదా క్రింద ఆప్షన్లపై <b>డైరెక్ట్ ట్యాప్</b> చేసి సరిచేయండి.</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsRecordingVoice(!isRecordingVoice)}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                isRecordingVoice
+                  ? 'bg-rose-100 text-rose-700 border border-rose-300'
+                  : 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+              }`}
+            >
+              {isRecordingVoice ? 'Stop Mic ⏹️' : 'Start Speaking 🎙️'}
+            </button>
+          </div>
+
+          {/* Live Spoken Word Box */}
+          {voiceSpokenText && (
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-sans text-slate-900 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-[10px] text-slate-500 uppercase tracking-wider">
+                  You Spoken:
+                </span>
                 <button
                   type="button"
                   onClick={() => setVoiceSpokenText('')}
-                  className="text-[#843C2E] hover:underline font-bold"
+                  className="text-[10px] text-rose-600 hover:underline font-bold"
                 >
                   Clear ✕
                 </button>
               </div>
+              <div className="p-2 bg-white rounded-lg border border-slate-200 font-serif italic text-sm text-slate-900">
+                "{voiceSpokenText}"
+              </div>
+            </div>
+          )}
+
+          {/* AI Recognition Feedback & Auto Next Countdown */}
+          {recognizedFeedback && (
+            <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-300 text-emerald-950 flex items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <div className="text-xs font-sans">
+                  <strong>Noted Point:</strong> <span className="font-bold underline">{recognizedFeedback}</span>
+                </div>
+              </div>
+              {autoAdvanceCountdown !== null && (
+                <div className="flex items-center gap-1.5 text-xs font-mono text-emerald-800 bg-emerald-200/80 px-2.5 py-1 rounded-lg">
+                  <FastForward className="w-3.5 h-3.5" />
+                  <span>Next in {autoAdvanceCountdown}s...</span>
+                </div>
+              )}
             </div>
           )}
 
           {micError && (
-            <div className="w-full mt-2 p-2 bg-[#843C2E]/10 rounded-lg border border-[#843C2E]/20 text-[11px] text-[#843C2E] font-sans">
+            <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-700 font-sans">
               ⚠️ {micError}
             </div>
           )}
         </div>
 
-        {/* 1. Site (Anatomical Region) */}
+        {/* Direct Tap Options (Visual Fallback or Confirmation) */}
         <div>
-          <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">
-            1. Site (Anatomical Location)
+          <label className="block text-xs font-mono uppercase tracking-wider text-slate-700 font-bold mb-3">
+            Or Tap an Option to Record Instantly:
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {siteCategories.map((sc) => (
-              <button
-                key={sc.id}
-                type="button"
-                onClick={() =>
-                  setData({
-                    ...data,
-                    siteLocationCategory: sc.id,
-                    site: sc.label,
-                  })
-                }
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                  data.siteLocationCategory === sc.id
-                    ? 'border-[#1A1A1A] bg-[#1A1A1A] text-[#F9F7F2]'
-                    : 'border-[#1A1A1A]/15 hover:border-[#1A1A1A]/30 text-[#1A1A1A] bg-white'
-                }`}
-              >
-                <div className="text-xs font-sans font-bold tracking-tight">{sc.label}</div>
-                <div className={`text-[10px] mt-0.5 font-serif italic ${data.siteLocationCategory === sc.id ? 'text-[#D4A373]' : 'text-[#1A1A1A]/60'}`}>
-                  {sc.description}
-                </div>
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            value={data.site}
-            onChange={(e) => setData({ ...data, site: e.target.value })}
-            className="mt-2.5 w-full px-4 py-2.5 rounded-xl border border-[#1A1A1A]/20 bg-[#F9F7F2]/40 text-xs focus:ring-1 focus:ring-[#D4A373] focus:outline-none"
-            placeholder="Specific anatomical details (e.g. Substernal retrosternal mid-chest)"
-          />
-        </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {currentQ.options?.map((opt) => {
+              // Check if currently selected
+              let isSelected = false;
+              if (currentQ.key === 'site') isSelected = data.siteLocationCategory === opt.id;
+              if (currentQ.key === 'onset') isSelected = data.onset === opt.id;
+              if (currentQ.key === 'character') isSelected = data.character === opt.id;
+              if (currentQ.key === 'radiation') isSelected = data.radiation === opt.id;
+              if (currentQ.key === 'associations') isSelected = data.associations.includes(opt.id);
+              if (currentQ.key === 'timeCourse') isSelected = data.timeCourse === opt.id;
+              if (currentQ.key === 'exacerbating') isSelected = data.exacerbatingFactors.includes(opt.id);
+              if (currentQ.key === 'severity') isSelected = data.severityScore === Number(opt.id);
 
-        {/* 2. Onset & 3. Character */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[#1A1A1A]/10">
-          <div>
-            <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">
-              2. Onset (Temporal Commencement)
-            </label>
-            <div className="space-y-1.5">
-              {onsetOptions.map((opt) => (
+              return (
                 <button
-                  key={opt}
+                  key={opt.id}
                   type="button"
-                  onClick={() => setData({ ...data, onset: opt })}
-                  className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
-                    data.onset === opt
-                      ? 'border-[#1A1A1A] bg-[#1A1A1A] text-[#F9F7F2] font-semibold'
-                      : 'border-[#1A1A1A]/15 hover:bg-[#EAE8E2]/50 text-[#1A1A1A] bg-white'
+                  onClick={() => applyAnswer(currentQ, opt.id, opt.label[language] || opt.label.en)}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                    isSelected
+                      ? 'border-emerald-600 bg-emerald-50/90 ring-2 ring-emerald-500/20 shadow-md scale-[1.01]'
+                      : 'border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50 shadow-xs'
                   }`}
                 >
-                  {opt}
+                  {isSelected && (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 absolute top-3.5 right-3.5" />
+                  )}
+                  <div className="text-sm font-serif font-bold text-slate-900 pr-6">
+                    {opt.label[language] || opt.label.en}
+                  </div>
+                  <div className="text-[11px] font-mono text-emerald-700 mt-1 font-medium">
+                    {opt.clinicalTag}
+                  </div>
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">
-              3. Character (Pain Quality)
-            </label>
-            <div className="space-y-1.5">
-              {characterOptions.map((char) => (
-                <button
-                  key={char}
-                  type="button"
-                  onClick={() => setData({ ...data, character: char })}
-                  className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
-                    data.character === char
-                      ? 'border-[#1A1A1A] bg-[#1A1A1A] text-[#F9F7F2] font-semibold'
-                      : 'border-[#1A1A1A]/15 hover:bg-[#EAE8E2]/50 text-[#1A1A1A] bg-white'
-                  }`}
-                >
-                  {char}
-                </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* 4. Radiation & 5. Associations */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[#1A1A1A]/10">
-          <div>
-            <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">
-              4. Radiation (Anatomical Extension)
-            </label>
-            <div className="space-y-1.5">
-              {radiationOptions.map((rad) => (
-                <button
-                  key={rad}
-                  type="button"
-                  onClick={() => setData({ ...data, radiation: rad })}
-                  className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
-                    data.radiation === rad
-                      ? 'border-[#1A1A1A] bg-[#1A1A1A] text-[#F9F7F2] font-semibold'
-                      : 'border-[#1A1A1A]/15 hover:bg-[#EAE8E2]/50 text-[#1A1A1A] bg-white'
-                  }`}
-                >
-                  {rad}
-                </button>
-              ))}
-            </div>
+        {/* Current Recorded Clinical Assessment Summary Chips */}
+        <div className="pt-4 border-t border-slate-200">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-bold mb-2">
+            Clinical Intake Live Summary (8 Factors):
           </div>
-
-          <div>
-            <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">
-              5. Associated Symptoms (Select all)
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {commonAssociations.map((assoc) => (
-                <button
-                  key={assoc}
-                  type="button"
-                  onClick={() => toggleAssociation(assoc)}
-                  className={`px-3 py-1.5 rounded-full border text-xs font-sans transition-all cursor-pointer ${
-                    data.associations.includes(assoc)
-                      ? 'bg-[#1A1A1A] text-[#F9F7F2] border-[#1A1A1A] font-semibold shadow-xs'
-                      : 'bg-white text-[#1A1A1A] border-[#1A1A1A]/15 hover:bg-[#EAE8E2]/50'
-                  }`}
-                >
-                  {assoc}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-2 text-xs font-mono">
+            <span className={`px-2.5 py-1 rounded-lg border ${data.site ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+              <strong>Site:</strong> {data.site || 'Pending...'}
+            </span>
+            <span className={`px-2.5 py-1 rounded-lg border ${data.onset ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+              <strong>Onset:</strong> {data.onset || 'Pending...'}
+            </span>
+            <span className={`px-2.5 py-1 rounded-lg border ${data.character ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+              <strong>Character:</strong> {data.character || 'Pending...'}
+            </span>
+            <span className={`px-2.5 py-1 rounded-lg border ${data.radiation ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+              <strong>Radiation:</strong> {data.radiation || 'Pending...'}
+            </span>
+            <span className={`px-2.5 py-1 rounded-lg border ${data.severityScore ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'}`}>
+              <strong>Severity:</strong> {data.severityScore}/10
+            </span>
           </div>
         </div>
 
-        {/* 6. Time Course & 7. Severity (1-10) */}
-        <div className="pt-4 border-t border-[#1A1A1A]/10 space-y-4">
-          <div>
-            <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-2">
-              6. Severity (Visual Analog Scale 1 to 10)
-            </label>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={data.severityScore}
-                onChange={(e) => setData({ ...data, severityScore: Number(e.target.value) })}
-                className="w-full h-2 bg-[#EAE8E2] rounded-lg appearance-none cursor-pointer accent-[#1A1A1A]"
-              />
-              <div
-                className={`w-14 h-10 rounded-xl flex items-center justify-center font-serif text-lg font-bold shadow-xs shrink-0 ${
-                  data.severityScore >= 8
-                    ? 'bg-[#843C2E] text-white'
-                    : data.severityScore >= 5
-                    ? 'bg-[#D4A373] text-[#1A1A1A]'
-                    : 'bg-[#5E7153] text-white'
-                }`}
-              >
-                {data.severityScore}/10
-              </div>
-            </div>
-            <div className="flex justify-between text-[10px] font-sans uppercase tracking-wider text-[#1A1A1A]/60 mt-1">
-              <span>1 - Mild</span>
-              <span>5 - Moderate</span>
-              <span className="text-[#843C2E] font-bold">10 - Worst Pain</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-sans font-bold uppercase tracking-[0.15em] text-[#1A1A1A] mb-1.5">
-              Functional Impact
-            </label>
-            <select
-              value={data.functionalImpact}
-              onChange={(e) => setData({ ...data, functionalImpact: e.target.value as any })}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#1A1A1A]/20 bg-[#F9F7F2]/40 text-xs focus:ring-1 focus:ring-[#D4A373] focus:outline-none"
-            >
-              <option value="Mild discomfort">Mild discomfort (Normal daily activities)</option>
-              <option value="Moderate discomfort">Moderate discomfort (Restricts standard activities)</option>
-              <option value="Severely limited">Severely limited (Requires assistance to walk)</option>
-              <option value="Unable to walk or speak in full sentences">
-                Unable to walk or speak in full sentences (Critical emergency state)
-              </option>
-            </select>
-          </div>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#1A1A1A]/10">
+        {/* Bottom Navigation Buttons */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
           <button
             type="button"
-            onClick={onBack}
-            className="px-5 py-2.5 rounded-full border border-[#1A1A1A]/20 text-[#1A1A1A] text-xs font-sans uppercase tracking-[0.15em] hover:bg-[#EAE8E2]/50 cursor-pointer"
+            onClick={handlePrevQuestion}
+            className="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
           >
-            {t.back}
+            <ArrowLeft className="w-4 h-4" />
+            <span>{currentQuestionIndex === 0 ? '← Back to Menu' : 'Previous Question'}</span>
           </button>
+
           <button
             type="button"
-            onClick={() => onSubmitSocrates(data)}
-            className="px-7 py-3 rounded-full bg-[#1A1A1A] hover:bg-black text-[#F9F7F2] font-sans uppercase tracking-[0.15em] text-xs shadow-sm flex items-center gap-2 cursor-pointer transition-all"
+            onClick={handleNextQuestion}
+            className="px-6 py-3 rounded-xl bg-[#0F172A] hover:bg-black text-white text-xs font-sans uppercase tracking-[0.15em] font-bold shadow-lg hover:shadow-emerald-500/20 active:scale-98 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <span>Proceed to Red-Flag Screening</span>
-            <ArrowRight className="w-4 h-4 text-[#D4A373]" />
+            <span>
+              {currentQuestionIndex === totalQuestions - 1
+                ? 'Proceed to Red-Flag Screening →'
+                : `Next Question (${currentQuestionIndex + 2}/${totalQuestions}) →`}
+            </span>
           </button>
         </div>
       </div>
